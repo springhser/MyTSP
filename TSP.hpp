@@ -3,8 +3,8 @@
  * @version: 
  * @Author: springhser
  * @Date: 2020-12-21 22:35:55
- * @LastEditors: springhser
- * @LastEditTime: 2021-04-18 16:59:24
+ * @LastEditors: Please set LastEditors
+ * @LastEditTime: 2021-04-20 20:04:30
  */
 #include <bits/stdc++.h>
 
@@ -25,11 +25,15 @@ struct Node
 };
 struct Edge
 {
-    Node ns_;
-    Node ne_;
-    double length_;
-    explicit Edge():ns_(Node()),ne_(Node()){}
-    Edge(const Node& ns, const Node& ne):ns_(ns),ne_(ne){}    
+    explicit Edge():ns_(Node()),ne_(Node())
+    {
+        calLength_();
+    }
+    Edge(const Node& ns, const Node& ne):ns_(ns),ne_(ne)
+    {
+        calLength_();
+    }
+        
     double getLength() const
     {
         return length_;
@@ -37,8 +41,19 @@ struct Edge
     
     friend bool operator==(const Edge& lhs, const Edge& rhs) 
     {
-        return lhs.ns_ == rhs.ns_ && lhs.ne_ == rhs.ne_;
+        return (lhs.ns_ == rhs.ns_ && lhs.ne_ == rhs.ne_) ||
+               (lhs.ne_ == rhs.ns_ && lhs.ns_ == rhs.ne_); // ignore the direction
     }
+
+private:
+    void calLength_()
+    {
+        length_ = sqrt((ns_.x_-ne_.x_)*(ns_.x_-ne_.x_)+(ns_.y_-ne_.y_)*(ns_.y_-ne_.y_));
+    }
+private:
+    Node ns_;
+    Node ne_;
+    double length_;
 };
 struct Tour
 {
@@ -161,14 +176,34 @@ public:
             continue;
         }
         
-
         // get the neighbor node of n2.
         std::vector<Node> neighs = getNeighbor(n2);
-
+        Node n3;
         for(auto& neigh:neighs)
         {
+            Edge e(n2,neigh);
+            if(tour_.isEdgeInTour(e))
+            {
+                continue;
+            }
             
+            if(isEdgeInRSet(e))
+            {
+                continue;
+            }
+
+            if(e.getLength() >= e1.getLength())
+            {
+                continue;
+            }
+
+            // add the new edge to set_A_
+            set_A_.insert(e);
+            n3 = neigh;
+            break;
         }
+
+        
     }
 
     return lk_tour_;
@@ -177,6 +212,16 @@ public:
     std::vector<Node> getNeighbor(const Node& n2)
     {
         return std::vector<Node>();
+    }
+
+    bool isEdgeInRSet(const Edge& e)
+    {
+        return set_R_.find(e) != set_R_.end();
+    }
+
+    bool isEdgeInASet(const Edge& e)
+    {
+        return set_A_.find(e) != set_A_.end();
     }
 
 private:
