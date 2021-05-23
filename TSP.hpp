@@ -3,26 +3,49 @@
  * @version: 
  * @Author: springhser
  * @Date: 2020-12-21 22:35:55
- * @LastEditors: Please set LastEditors
- * @LastEditTime: 2021-04-20 20:04:30
+ * @LastEditors: springhser
+ * @LastEditTime: 2021-05-23 12:11:04
  */
-#include <bits/stdc++.h>
+#include <vector>
+#include <unordered_map>
+#include <unordered_set>
+#include <set>
+#include <string>
+#include <list>
+#include <array>
+#include <iostream>
+#include <algorithm>
+#include <math.h>
 
+
+
+#define RECURSION_DEPTH 5
 
 struct Node
 {
-    int idx_;           // this index is an unique flag of a node.
-    double x_;
-    double y_;
-    std::string name_; // the name of the node in real world, like city's name 
     Node(const double x = 0.0, const double y = 0.0):x_(x),y_(y){}
     
     friend bool operator==(const Node& lhs, const Node& rhs)
     {
-        return lhs.x_ == rhs.x_ && lhs.y_ == rhs.y_;
+        return lhs.unq_idx_ == rhs.unq_idx_;
     }
 
+    int unq_idx_;           // this index is an unique flag of a node.
+    int order_;            // this is the order in a specify tour
+    double x_;
+    double y_;
+    std::string name_; // the name of the node in real world, like city's name 
+
+    Node* prev;
+    Node* next;
+
 };
+
+static std::vector<Node> g_node_list;
+
+using Matrix = std::vector<std::vector<int>>;
+
+static Matrix g_node_dist_mat; 
 struct Edge
 {
     explicit Edge():ns_(Node()),ne_(Node())
@@ -57,14 +80,55 @@ private:
 };
 struct Tour
 {
-    Tour(){}
+    Tour(int node_size = 0):node_size_(node_size){}
+    /**
+     * @brief Determine whether it is a valid path
+     * @return yes: true; no: false
+     */
     bool isPath() const
     {
-        return false;
+        Node* node_tra = head_node_;
+        std::unordered_set<int> node_idx;
+        while(node_tra)
+        {
+            if(node_idx.find(node_tra->unq_idx_)!=node_idx.end())
+            {
+                return node_idx.size() == node_size_;
+            }
+            node_idx.insert(node_tra->unq_idx_);
+            node_tra = node_tra->next;
+        }
+        return node_idx.size() == node_size_;
     }
-    void calTourCost() 
+
+    /**
+     * @brief calculate the cost of the tour.This function
+     *        maybe will not be used very frequently 
+     * @return the cost of the tour
+     * 
+     * @warning It should esure the tour is a vaild path, 
+     *          or the cost will be set to -1
+     */
+    void calTourCost() // 
     {
-        cost_ = 0.0;
+        if(!isPath())
+        {
+            cost_ = -1;
+            return;
+        }
+        double t_cost = 0.0;
+        Node* node_tra = head_node_;
+        while(node_tra && node_tra->next )
+        {
+            if(node_tra->next->unq_idx_ == head_node_->unq_idx_)
+            {
+                t_cost = t_cost + g_node_dist_mat[node_tra->next->unq_idx_][head_node_->unq_idx_];
+                break;
+            }
+            t_cost = t_cost + g_node_dist_mat[node_tra->next->unq_idx_][node_tra->unq_idx_];
+            node_tra = node_tra->next;
+        }
+        cost_ = t_cost;
     }
     double getTourCost() const
     {
@@ -79,8 +143,9 @@ struct Tour
 
     bool isEdgeInTour(const Edge& e) const
     {
-        return edges_.find(e) != edges_.end();
-    }
+        return false;
+        // return edges_.find(e) != edges_.end();
+    }                     
     Node getFirstNode() const
     {
         return nodes_list_[0]; 
@@ -88,7 +153,8 @@ struct Tour
 
     bool isTourEmpty()
     {
-        return edges_.empty();
+        return false;
+        // return edges_.empty();
     }
     Node getNodeSucc(const Node& n) const 
     {
@@ -108,10 +174,24 @@ struct Tour
     {
         return false;
     }
+    bool removeEdge(const Edge& e)
+    {
+        return true;
+    }
+    bool addEdge(const Edge& e)
+    {
+        return true;
+    }
     std::vector<Node> nodes_list_;
-    std::set<Edge> edges_; // to be removed
+
+    std::unordered_map<int, Node*> tour_map_; 
+    Node* head_node_;
+    
     double cost_;
+
+    int node_size_;
 };
+
 
 /*
 思路：
@@ -152,84 +232,146 @@ Key function:
 class TSP
 {
 public:
-    TSP(const Tour& init_tour): tour_(init_tour)
-    {
+//     TSP(const Tour& init_tour): tour_(init_tour),recur_depth_(0)
+//     {
+//     }
     
-    }
+//     Tour getOptTour()
+//     {
+//     // select the first node n1;
+//     Node n1 = tour_.getFirstNode();
     
-    Tour getOptTour()
-    {
-    // select the first node n1;
-    Node n1 = tour_.getFirstNode();
-    
-    // get succ or prev of n1;
-    std::vector<Node> prv_succ= tour_.getAdjacent(n1);
-    for(auto& n2: prv_succ)
-    {
-        Edge e1(n1, n2);
-        if(set_R_.find(e1) == set_R_.end())
-        {
-            set_R_.insert(e1);
-        }
-        else
-        {
-            continue;
-        }
-        
-        // get the neighbor node of n2.
-        std::vector<Node> neighs = getNeighbor(n2);
-        Node n3;
-        for(auto& neigh:neighs)
-        {
-            Edge e(n2,neigh);
-            if(tour_.isEdgeInTour(e))
-            {
-                continue;
-            }
+//     doOpt(n1);
+//     lk_tour_ = tour_;
+//     return lk_tour_;
+//     }
+
+//     bool doOpt(const Node& n1)
+//     {
+//     // get succ or prev of n1;
+//         std::vector<Node> prv_succ= tour_.getAdjacent(n1);
+
+//         bool get_new_tour_flag = false;
+//         for(auto& n2: prv_succ)
+//         {
+//             Edge e1(n1, n2);
+//             if(set_R_.find(e1) == set_R_.end())
+//             {
+//                 set_R_.insert(e1);
+//             }
+//             else
+//             {
+//                 continue;
+//             }
             
-            if(isEdgeInRSet(e))
-            {
-                continue;
-            }
+//             // get the neighbor node of n2.
+//             std::vector<Node> neighs = getNeighbor(n2);
+//             Node n3;
 
-            if(e.getLength() >= e1.getLength())
-            {
-                continue;
-            }
+//             for(auto& neigh:neighs)
+//             {
+//                 Edge e(n2,neigh);
+//                 if(tour_.isEdgeInTour(e))
+//                 {
+//                     continue;
+//                 }
+                
+//                 if(isEdgeInRSet(e))
+//                 {
+//                     continue;
+//                 }
 
-            // add the new edge to set_A_
-            set_A_.insert(e);
-            n3 = neigh;
-            break;
-        }
+//                 if(e.getLength() >= e1.getLength())
+//                 {
+//                     continue;
+//                 }
 
-        
-    }
-
-    return lk_tour_;
-    }
-
-    std::vector<Node> getNeighbor(const Node& n2)
-    {
-        return std::vector<Node>();
-    }
-
-    bool isEdgeInRSet(const Edge& e)
-    {
-        return set_R_.find(e) != set_R_.end();
-    }
-
-    bool isEdgeInASet(const Edge& e)
-    {
-        return set_A_.find(e) != set_A_.end();
-    }
-
-private:
-    std::set<Edge> set_R_; // the set of edge that will be removed
-    std::set<Edge> set_A_; // the set of edge that will be added
+//                 // add the new edge to set_A_
+//                 set_A_.insert(e);
+//                 n3 = neigh;
+//                 if(get_new_tour_flag = doSelection(n3, n1))
+//                 {
+//                     break;
+//                 }
+//             }
+//         }
+//         return true;
+//     }
     
-    int recur_deep_;  // the recurve deep
-    Tour tour_;
-    Tour lk_tour_;
+//     bool doSelection(const Node& n3, const Node& n1 )
+//     {
+//         std::vector<Node> prv_succ= tour_.getAdjacent(n3);
+//         for(auto& n4: prv_succ)
+//         {
+//             Edge e(n1, n4);
+//             if(tour_.isEdgeInTour(e))
+//             {
+//                 continue;
+//             }
+            
+//             if(isEdgeInRSet(e))
+//             {
+//                 continue;
+//             }
+
+//             Tour temp_tour = tour_;
+//             for(auto& e_r: set_R_)
+//             {
+//                 temp_tour.removeEdge(e_r);
+//             }
+
+//             for(auto& e_a: set_A_)
+//             {
+//                 temp_tour.addEdge(e_a);
+//             }
+//             temp_tour.addEdge(e);
+            
+//             if(temp_tour.isPath() && temp_tour.getTourCost() < tour_.getTourCost())
+//             {
+//                 tour_ = temp_tour;
+//                 recur_depth_ = 0;
+//                 return true;
+//             }
+            
+//             if(recur_depth_ > RECURSION_DEPTH)
+//             {
+//                 recur_depth_ = 0;
+//                 return false;
+//             }
+
+//             set_A_.insert(e);
+//             recur_depth_++;
+//             doOpt(n4);
+            
+//         }
+//     }
+//     std::vector<Node> getNeighbor(const Node& n2)
+//     {
+//         return std::vector<Node>();
+//     }
+
+//     bool isEdgeInRSet(const Edge& e)
+//     {
+//         return set_R_.find(e) != set_R_.end();
+//     }
+
+//     bool isEdgeInASet(const Edge& e)
+//     {
+//         return set_A_.find(e) != set_A_.end();
+//     }
+
+// private:
+//     std::set<Edge> set_R_; // the set of edge that to be removed
+//     std::set<Edge> set_A_; // the set of edge that to be added
+    
+//     int recur_depth_;  // the recurve deep
+//     Tour tour_;
+//     Tour lk_tour_;
+
+};
+
+
+struct NodeMap
+{
 
 };
