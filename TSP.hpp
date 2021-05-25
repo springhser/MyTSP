@@ -4,7 +4,7 @@
  * @Author: springhser
  * @Date: 2020-12-21 22:35:55
  * @LastEditors: springhser
- * @LastEditTime: 2021-05-25 08:12:48
+ * @LastEditTime: 2021-05-25 23:58:53
  */
 #include <vector>
 #include <unordered_map>
@@ -19,33 +19,24 @@
 #include <utility>
 #include <functional>
 
+#include "Point.hpp"
+#include "Utils/HelpTool.hpp"
 
 #define RECURSION_DEPTH 5
 
 struct Node
 {
-    Node(const double x = 0.0, const double y = 0.0):x_(x),y_(y){}
-    
+    Node(int index = -1):unq_idx_(index),prev(nullptr), next(nullptr){}
     friend bool operator==(const Node& lhs, const Node& rhs)
     {
         return lhs.unq_idx_ == rhs.unq_idx_;
     }
 
     int unq_idx_;           // this index is an unique flag of a node.
-    int order_;            // this is the order in a specify tour
-    double x_;
-    double y_;
-    std::string name_; // the name of the node in real world, like city's name 
-
     Node* prev;
     Node* next;
 
 };
-
-static std::vector<Node> g_node_list;
-
-using Matrix = std::vector<std::vector<int>>;
-using Edge = std::pair<int, int>;
 
 struct hash_pair
 {
@@ -57,49 +48,20 @@ struct hash_pair
     }
 };
 
-static Matrix g_node_dist_mat; 
-
+using Matrix = std::vector<std::vector<double>>;
+using Edge = std::pair<int, int>;
 using EdgeSet = std::unordered_set<Edge, hash_pair>;
-static double getEdgeLength(int idx1, int idx2)
-{
-    return g_node_dist_mat[idx1][idx2];
-}
-// struct Edge
-// {
-//     explicit Edge():ns_(Node()),ne_(Node())
-//     {
-//         calLength_();
-//     }
-//     Edge(const Node& ns, const Node& ne):ns_(ns),ne_(ne)
-//     {
-//         calLength_();
-//     }
-        
-//     double getLength() const
-//     {
-//         return length_;
-//     }
-    
-//     friend bool operator==(const Edge& lhs, const Edge& rhs) 
-//     {
-//         return (lhs.ns_ == rhs.ns_ && lhs.ne_ == rhs.ne_) ||
-//                (lhs.ne_ == rhs.ns_ && lhs.ns_ == rhs.ne_); // ignore the direction
-//     }
 
-// private:
-//     void calLength_()
-//     {
-//         length_ = sqrt((ns_.x_-ne_.x_)*(ns_.x_-ne_.x_)+(ns_.y_-ne_.y_)*(ns_.y_-ne_.y_));
-//     }
-// private:
-//     Node ns_;
-//     Node ne_;
-//     double length_;
-// };
+
 struct Tour
 {
-    Tour(int node_size = 0):node_size_(node_size){}
+    Tour(){}
 
+    void initGreedyTour()
+    {
+        
+    }
+    
     void deepCopy(const Tour& tour)
     {
         nodes_list_ = tour.nodes_list_;
@@ -113,7 +75,6 @@ struct Tour
             tour_map_[n.unq_idx_]->prev = tour_map_[n.prev->unq_idx_];
         }
         head_node_ = tour_map_[tour.head_node_->unq_idx_];
-        node_size_ = tour.node_size_;
         cost_ = tour.cost_;
     }
     /**
@@ -128,12 +89,12 @@ struct Tour
         {
             if(node_idx.find(node_tra->unq_idx_)!=node_idx.end())
             {
-                return node_idx.size() == node_size_;
+                return node_idx.size() == Node_Size;
             }
             node_idx.insert(node_tra->unq_idx_);
             node_tra = node_tra->next;
         }
-        return node_idx.size() == node_size_;
+        return node_idx.size() == Node_Size;
     }
 
     /**
@@ -155,10 +116,10 @@ struct Tour
         {
             if(node_tra->next->unq_idx_ == head_node_->unq_idx_)
             {
-                t_cost = t_cost + g_node_dist_mat[node_tra->next->unq_idx_][head_node_->unq_idx_];
+                t_cost = t_cost + Node_Dist_Mat[node_tra->next->unq_idx_][head_node_->unq_idx_];
                 break;
             }
-            t_cost = t_cost + g_node_dist_mat[node_tra->next->unq_idx_][node_tra->unq_idx_];
+            t_cost = t_cost + Node_Dist_Mat[node_tra->next->unq_idx_][node_tra->unq_idx_];
             node_tra = node_tra->next;
         }
         cost_ = t_cost;
@@ -182,8 +143,27 @@ struct Tour
 
     bool isEdgeInTour(const Edge& e) const
     {
-        return false;
-    }                     
+        /*
+        //https://stackoverflow.com/questions/42095642/error-passing-const-stdmapint-int-as-this-argument-discards-qualifiers
+        operator[] hasn't a const qualifier in std::map, as you can see from the documentation, e.g. std::map::operator[] - cppreference.com:
+
+        Returns a reference to the value that is mapped to a key equivalent to key, performing an insertion if such key does not already exist.
+
+        Therefore you cannot use it directly on a const instance. Use at instead (ref std::map::at - cppreference.com) if you can afford C++11 features.
+
+        Declarations for those member functions follow:
+
+        T& operator[](const key_type& x);
+        T& operator[](key_type&& x);
+        T&       at(const key_type& x);
+        const T& at(const key_type& x) const;
+        */
+        // return (this->tour_map_[e.first]->prev->unq_idx_ == this->tour_map_[e.second]->unq_idx_ ||
+        //         this->tour_map_[e.first]->next->unq_idx_ == this->tour_map_[e.second]->unq_idx_);
+        return (tour_map_.at(e.first)->prev->unq_idx_ == tour_map_.at(e.second)->unq_idx_ ||
+                tour_map_.at(e.first)->next->unq_idx_ == tour_map_.at(e.second)->unq_idx_);
+    }
+                         
     Node getFirstNode() const
     {
         return *head_node_; 
@@ -194,10 +174,6 @@ struct Tour
         return *tour_map_[uique_idx];
     }
 
-    bool isTourEmpty()
-    {
-        return false;
-    }
     Node getNodeSucc(const Node& n) const 
     {
         return *n.next;
@@ -241,7 +217,7 @@ struct Tour
             {
                 continue;
             }
-            if(getEdgeLength(n.unq_idx_, cur_node.unq_idx_) >= length)
+            if(Tour::getEdgeLength(n.unq_idx_, cur_node.unq_idx_) >= length)
             {
                 continue;
             }
@@ -320,7 +296,36 @@ struct Tour
     
     double cost_;
 
-    int node_size_;
+    // static
+    
+    static bool initDistMat(const Points& point_list)
+    {
+        if(point_list.empty())
+        {
+            return false;
+        }
+        int p_size = point_list.size();
+        Node_Size = p_size;
+        Node_Dist_Mat = std::vector<std::vector<double>>(p_size,std::vector<double>(p_size, 0));
+        for(int i = 0; i < p_size; ++i)
+        {
+            for(int j = 0; j < i; ++j)
+            {
+                
+                Node_Dist_Mat[i][j] = Node_Dist_Mat[j][i] 
+                                    = sqrt((point_list[i].x-point_list[j].x)*(point_list[i].x-point_list[j].x) +
+                                           ((point_list[i].y-point_list[j].y)*(point_list[i].y-point_list[j].y)));
+            }
+        }
+        return true;
+    }
+    static double getEdgeLength(int idx1, int idx2)
+    {
+        // Verify the validity of  input parameters here.
+        return Node_Dist_Mat[idx1][idx2];
+    }
+    static Matrix Node_Dist_Mat; 
+    static int Node_Size;
 };
 
 
@@ -350,8 +355,16 @@ struct Tour
 class TSP
 {
 public:
-    TSP(const Tour& init_tour): tour_(init_tour),recur_depth_(0)
+    TSP(const Points& point_list):recur_depth_(0)
     {
+        // initialise global variable
+        Tour::initDistMat(point_list);
+        // initialise member variable
+    }
+
+    void initTour(const Points& point_list)
+    {
+        point_list_ = point_list;
     }
     
     Tour getOptTour()
@@ -393,7 +406,7 @@ public:
             
             // get the neighbor node of n2.
             Node n3;
-            if(!tour_.getNeighborNode(n2, set_R_, getEdgeLength(n1.unq_idx_, n2.unq_idx_), n3))
+            if(!tour_.getNeighborNode(n2, set_R_, Tour::getEdgeLength(n1.unq_idx_, n2.unq_idx_), n3))
             {
                 return false;
             }
@@ -455,7 +468,6 @@ public:
         return false;
     }
 
-
     bool isEdgeInRSet(const Edge& e)
     {
         return set_R_.find(e) != set_R_.end();
@@ -473,5 +485,5 @@ private:
     int recur_depth_;  // the recurve deep
     Tour tour_;
     Tour lk_tour_;
-
+    Points point_list_;
 };
