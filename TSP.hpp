@@ -4,7 +4,7 @@
  * @Author: springhser
  * @Date: 2020-12-21 22:35:55
  * @LastEditors: springhser
- * @LastEditTime: 2021-05-25 23:58:53
+ * @LastEditTime: 2021-05-26 08:17:39
  */
 #include <vector>
 #include <unordered_map>
@@ -59,7 +59,24 @@ struct Tour
 
     void initGreedyTour()
     {
-        
+        for(int i = 1; i <= Node_Size; ++i)
+        {
+            nodes_list_.push_back(Node(i));
+        }
+
+        for(int i = 0; i < Node_Size-1; ++i)
+        {
+            nodes_list_[i].next = &nodes_list_[i+1];
+            nodes_list_[i+1].prev = &nodes_list_[i];
+        }
+        nodes_list_[0].prev = &nodes_list_[Node_Size-1];
+        nodes_list_[Node_Size-1].next = &nodes_list_[0];
+        head_node_ = &nodes_list_[0];
+
+        for(int i = 0; i < Node_Size; ++i)
+        {
+            tour_map_[i] = &nodes_list_[i];
+        }
     }
     
     void deepCopy(const Tour& tour)
