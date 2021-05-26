@@ -4,7 +4,7 @@
  * @Author: springhser
  * @Date: 2021-05-25 20:48:06
  * @LastEditors: springhser
- * @LastEditTime: 2021-05-25 21:25:51
+ * @LastEditTime: 2021-05-26 21:36:29
  */
 #ifndef DATA_READER_HPP
 #define DATA_READER_HPP
@@ -27,7 +27,7 @@
 class DataReader
 {
 public:
-    bool addContents(std::ifstream& ff, Points& point_list)
+    static bool addContents(std::ifstream& ff, Points& point_list)
     {
         try
         {

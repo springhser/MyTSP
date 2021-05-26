@@ -4,8 +4,10 @@
  * @Author: springhser
  * @Date: 2020-12-21 22:35:55
  * @LastEditors: springhser
- * @LastEditTime: 2021-05-26 08:17:39
+ * @LastEditTime: 2021-05-26 22:49:18
  */
+#ifndef TSP_HPP
+#define TSP_HPP
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
@@ -59,7 +61,7 @@ struct Tour
 
     void initGreedyTour()
     {
-        for(int i = 1; i <= Node_Size; ++i)
+        for(int i = 0; i < Node_Size; ++i)
         {
             nodes_list_.push_back(Node(i));
         }
@@ -305,6 +307,41 @@ struct Tour
         }
     }
 
+    void printTour()
+    {
+        Node* node_tra = head_node_;
+        int i = 1;
+        PRINTN("Forward Traversal")
+        while(node_tra)
+        {
+            PRINT(node_tra->unq_idx_ << "->");
+            node_tra = node_tra->next;
+            if(node_tra == head_node_)
+            {
+                PRINTN(head_node_->unq_idx_<<" return to head");
+                break;
+            }
+            assertm(i <= Node_Size, "size error!");
+            
+            ++i;
+        }
+        i = 1;
+        PRINTN("Back Traversal")
+        while(node_tra)
+        {
+            PRINT(node_tra->unq_idx_ << "->");
+            node_tra = node_tra->prev;
+            if(node_tra == head_node_)
+            {
+                PRINTN(head_node_->unq_idx_<<" return to head");
+                break;
+            }
+            assertm(i <= Node_Size, "size error!");
+            
+            ++i;
+        }
+        PRINTN("size: " << nodes_list_.size());
+    }
     std::vector<Node> nodes_list_;
 
     std::unordered_map<int, Node*> tour_map_; 
@@ -340,6 +377,20 @@ struct Tour
     {
         // Verify the validity of  input parameters here.
         return Node_Dist_Mat[idx1][idx2];
+    }
+    static void printMatrix()
+    {
+        helptool::PrintContainer<double> pnum;
+        int i = 1;
+        for(auto& row : Node_Dist_Mat)
+        {
+            PRINTN("Line" << i)
+            
+            pnum.printVecSingleLine(row, " ");
+            PRINTN("");
+            ++i;
+        }
+       
     }
     static Matrix Node_Dist_Mat; 
     static int Node_Size;
@@ -377,11 +428,13 @@ public:
         // initialise global variable
         Tour::initDistMat(point_list);
         // initialise member variable
+        initTour(point_list);
     }
 
     void initTour(const Points& point_list)
     {
         point_list_ = point_list;
+        tour_.initGreedyTour();
     }
     
     Tour getOptTour()
@@ -495,6 +548,12 @@ public:
         return set_A_.find(e) != set_A_.end();
     }
 
+    void printTour()
+    {
+        Tour::printMatrix();
+        tour_.printTour();
+    }
+
 private:
     EdgeSet set_R_; // the set of edge that to be removed
     EdgeSet set_A_; // the set of edge that to be added
@@ -504,3 +563,4 @@ private:
     Tour lk_tour_;
     Points point_list_;
 };
+#endif
