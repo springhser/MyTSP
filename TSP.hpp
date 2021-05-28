@@ -4,7 +4,7 @@
  * @Author: springhser
  * @Date: 2020-12-21 22:35:55
  * @LastEditors: springhser
- * @LastEditTime: 2021-05-26 22:49:18
+ * @LastEditTime: 2021-05-27 22:49:14
  */
 #ifndef TSP_HPP
 #define TSP_HPP
@@ -305,6 +305,7 @@ struct Tour
             }
             cost_ = cost_ + getEdgeLength(n1->unq_idx_, n2->unq_idx_);
         }
+        return true;
     }
 
     void printTour()
@@ -429,6 +430,7 @@ public:
         Tour::initDistMat(point_list);
         // initialise member variable
         initTour(point_list);
+        lk_tour_.deepCopy(tour_);
     }
 
     void initTour(const Points& point_list)
@@ -437,7 +439,7 @@ public:
         tour_.initGreedyTour();
     }
     
-    Tour getOptTour()
+    void optTour()
     {
         bool is_success = false;
         for(auto& n: tour_.nodes_list_)
@@ -448,12 +450,12 @@ public:
             Node n1 = temp_tour.getNodeByIdx(n.unq_idx_);
             if(is_success = doOpt(n1, n1, temp_tour))
             {
-                lk_tour_.deepCopy(temp_tour);
-                break;
+                if(lk_tour_.getTourCost() > temp_tour.getTourCost())
+                {
+                    lk_tour_.deepCopy(temp_tour);
+                }
             }
         }
-        
-        return lk_tour_;
     }
 
     bool doOpt(const Node& n1, const Node& origin_node, Tour& temp_tour)
@@ -552,6 +554,11 @@ public:
     {
         Tour::printMatrix();
         tour_.printTour();
+    }
+
+    void printRes()
+    {
+        lk_tour_.printTour();
     }
 
 private:

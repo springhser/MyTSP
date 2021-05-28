@@ -4,7 +4,7 @@
  * @Author: springhser
  * @Date: 2021-04-18 23:32:34
  * @LastEditors: springhser
- * @LastEditTime: 2021-05-26 22:06:32
+ * @LastEditTime: 2021-05-27 22:48:05
  */
 #include "DataReader.hpp"
 #include "TSP.hpp"
@@ -24,12 +24,25 @@ void testDataReader()
 void testInitTSP()
 {
     TESTMODULE("Initialise TSP")
-    std::ifstream infile("Data/att48.tsp");
+    std::ifstream infile("Data/test.tsp");
     Points point_list;
     DataReader::addContents(infile, point_list);
     TSP tsp(point_list);
     TESTCASE("print node distance matrix")
     tsp.printTour();
+}
+
+void testDoOpt()
+{
+    TESTMODULE("Execute TSP")
+    std::ifstream infile("Data/test.tsp");
+    Points point_list;
+    DataReader::addContents(infile, point_list);
+    TSP tsp(point_list);
+    TESTCASE("Optimise the Tour")
+    tsp.optTour();
+    tsp.printRes();
+    
 }
 void testAll()
 {
