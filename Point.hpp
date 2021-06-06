@@ -4,7 +4,7 @@
  * @Author: springhser
  * @Date: 2021-05-25 20:50:48
  * @LastEditors: springhser
- * @LastEditTime: 2021-05-26 21:48:39
+ * @LastEditTime: 2021-06-05 21:45:37
  */
 #ifndef POINT_HPP
 #define POINT_HPP
@@ -15,7 +15,7 @@
 
 struct Point2D
 {
-    Point2D(double px, double py):x(px), y(py){}
+    Point2D(double px = 0.0, double py = 0.0):x(px), y(py){}
     double x;
     double y;
     friend std::ostream& operator<<(std::ostream& os, const Point2D& p)
