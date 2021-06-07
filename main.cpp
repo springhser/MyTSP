@@ -4,7 +4,7 @@
  * @Author: springhser
  * @Date: 2021-04-18 23:32:34
  * @LastEditors: springhser
- * @LastEditTime: 2021-06-06 11:25:38
+ * @LastEditTime: 2021-06-07 23:47:18
  */
 #include "DataReader.hpp"
 #include "TSP.hpp"
@@ -49,11 +49,18 @@ void testAll()
     // testDataReader();
     // testInitTSP();
     // testDoOpt();
-    
+#ifdef NO_TEST
     EdgeTest e_test;
     e_test.test();
+
+
+#endif
     TourTest tour_test;
     tour_test.test();
+
+    TSPTest tsp_test;
+    tsp_test.test();
+    
 }
 
 int main()

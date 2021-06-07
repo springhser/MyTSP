@@ -4,7 +4,7 @@
  * @Author: springhser
  * @Date: 2020-12-21 22:35:55
  * @LastEditors: springhser
- * @LastEditTime: 2021-06-07 03:25:11
+ * @LastEditTime: 2021-06-07 23:43:33
  */
 #ifndef TSP_HPP
 #define TSP_HPP
@@ -503,16 +503,15 @@ struct Tour
      *        1. 
      *        2.
      *        3.
-     * @return the cost of the tour
+     * @return the neighbor node of the cur_node.
      */
-    bool getNeighborNode(int cur_idx, const EdgeSet& R_set, /*double length, */int& nnode_idx)
+    bool getNeighborNode(int cur_idx, const EdgeSet& R_set, const EdgeSet& A_set, int& nnode_idx)
     {
         for(auto& n: Node_List)
         {
             // not the adjacent
             if(n.unq_idx_ == cur_idx ||
-               tour_map_[cur_idx].next_idx_ == n.unq_idx_ ||
-               tour_map_[cur_idx].prev_idx_ == n.unq_idx_)
+               isEdgeInTour(Edge(n.unq_idx_, cur_idx)))
             {
                 continue;
             }
@@ -520,6 +519,11 @@ struct Tour
             Edge t_e(n.unq_idx_, cur_idx);
 
             if(R_set.find(t_e) != R_set.end())
+            {
+                continue;
+            }
+
+            if(A_set.find(t_e) != A_set.end())
             {
                 continue;
             }
@@ -534,11 +538,44 @@ struct Tour
         return false;
     }
 
+// havnt finished
     bool isEqual(const Tour& tour) const
     {
+        if(Tour::getNodeSize() <= 2 )
+        {
+            return true;
+        }
+
+        int first_node = 0;
+        
+        bool forward = true;
+
+        int next_node1 = tour_map_.at(first_node).next_idx_;
+        int next_node2 = tour.getNodeSuccIdxByIdx(first_node);
+
+        //while()
+        
         return false;
     }
 
+    void removeEdges(const EdgeSet& R_set)
+    {
+        for(const auto& e: R_set)
+        {
+            if(tour_edges_.find(e) != tour_edges_.end())
+            {
+                tour_edges_.erase(e);
+            }
+        }
+    }
+
+    void addEdges(const EdgeSet& A_set)
+    {
+        for(const auto& e: A_set)
+        {
+            tour_edges_.insert(e);   
+        }
+    }
     
     TourMap tour_map_; 
 
@@ -705,11 +742,36 @@ class TourTest:public ATest
         }
         PRINTN("")
         EdgeSet R_set{Edge(0,1)};
+        EdgeSet A_set{Edge(1,3)};
         int res = -1;
-        EQUAL(tour.getNeighborNode(1, R_set, 4, res))
+        EQUAL(tour.getNeighborNode(1, R_set, A_set, res))
         EQUAL(3 ==res);
 
 
+    }
+
+    void testValid()
+    {
+        TESTCASE("Test valididy of tour")
+        Points pts;
+        pts.emplace_back(Point2D(0,1));
+        pts.emplace_back(Point2D(4,1));
+        pts.emplace_back(Point2D(2,2));
+        pts.emplace_back(Point2D(3,0));
+        pts.emplace_back(Point2D(1,0));
+        Tour::clearTour();
+        Tour::initDistMat(pts);
+        Tour::initNodeList(pts);
+
+        Tour tour;
+        tour.initTour();
+
+        EdgeSet R_set{Edge(0,1), Edge(2,3)};
+        EdgeSet A_set{Edge(0,2), Edge(1,4)};
+        tour.removeEdges(R_set);
+        tour.addEdges(A_set);
+        EQUAL(tour.isValidTour());
+        
     }
 public:
     void test()
@@ -718,6 +780,7 @@ public:
         testStatic();
         testInitTour();
         testGetInfo();
+        testValid();
     }
 };
 
@@ -766,20 +829,21 @@ public:
     void optTour()
     {
         bool is_success = false;
-        for(auto& n: tour_.nodes_list_)
+        for(auto& n: Tour::Node_List)
         {
             Tour temp_tour;
             temp_tour = tour_;
+            set_A_.clear();
+            set_R_.clear();
             // select the first node n1;
-            int n1 = temp_tour.getNodeIdxByIdx(n.unq_idx_);
-            if(is_success = doOpt(n1, n1, temp_tour))
+            if(is_success = doOpt(n.unq_idx_, temp_tour))
             {
                 tour_ = temp_tour;
             }
         }
     }
 
-    bool doOpt(int n1_idx, int origin_node_idx, Tour& temp_tour)
+    bool doOpt(int n1_idx, Tour& temp_tour)
     {
         // get succ or prev of n1;
         std::vector<int> prv_succ= tour_.getAdjacentIdxByIdx(n1_idx);
@@ -787,6 +851,9 @@ public:
         bool get_new_tour_flag = false;
         for(auto& n2_idx: prv_succ)
         {
+            // at the first the add set and remove set should be cleared.
+            set_A_.clear();
+            set_R_.clear();
             Edge e_r(n1_idx, n2_idx);
             if(set_R_.find(e_r) == set_R_.end())
             {
@@ -797,11 +864,10 @@ public:
                 continue;
             }
             
-            if(!doSelection(n2_idx))
+            if(!doSelection(n2_idx, n1_idx, temp_tour))
             {
                 continue;
             }
-            
         }
         return true;
     }
@@ -810,7 +876,7 @@ public:
     {
         // get the neighbor node of n2.
         int n3_idx;
-        if(!tour_.getNeighborNode(n2_idx, set_R_, /*Tour::getEdgeLength(n1_idx, n3_idx),*/ n3_idx))
+        if(!tour_.getNeighborNode(n2_idx, set_R_, set_A_, n3_idx))
         {
             return false;
         }
@@ -819,7 +885,7 @@ public:
         // add the new edge to set_A_
         set_A_.insert(e);
 
-        return doSelection2(n3_idx, origin_node_idx, temp_tour));
+        return doSelection2(n3_idx, origin_node_idx, temp_tour);
     }
     
     bool doSelection2(int n3_idx, int origin_node_idx, Tour& temp_tour)
@@ -828,19 +894,28 @@ public:
 
         for(auto& n4_idx : prv_succ)
         {
-            Edge e(origin_node_idx, n4_idx);
-            if(tour_.isEdgeInTour(e))
+            if(origin_node_idx == n4_idx)
+            {
+                continue;
+            }
+            Edge e_final(origin_node_idx, n4_idx);
+            if(tour_.isEdgeInTour(e_final))
             {
                 continue;
             }
             
-            if(isEdgeInRSet(e))
+            if(isEdgeInRSet(e_final))
             {
                 continue;
             }
-            Edge e_r(n3_idx,n4_idx)
+
+            if(isEdgeInASet(e_final))
+            {
+                continue;
+            }
+            Edge e_r(n3_idx,n4_idx);
             set_R_.insert(e_r);
-            set_A_.insert(e);
+            set_A_.insert(e_final);
             if(temp_tour.getEdgeSetLength(set_R_) > temp_tour.getEdgeSetLength(set_R_))
             {
                 if(temp_tour.relinkTour(set_R_, set_A_))
@@ -849,7 +924,7 @@ public:
                     return true;
                 }
             }
-            set_A_.erase(e);
+            set_A_.erase(e_final);
             
             if(recur_depth_ > RECURSION_DEPTH)
             {
@@ -860,11 +935,11 @@ public:
             recur_depth_++;
             if(doSelection(n4_idx, origin_node_idx, temp_tour))
             {
-                break;
+                return true;
             }
         }
 
-        return true;
+        return false;
     }
 
     bool isEdgeInRSet(const Edge& e)
@@ -898,4 +973,23 @@ private:
     Points point_list_;
 };
 
+class TSPTest : public ATest
+{
+    
+public:
+    void test()
+    {
+        TESTMODULE("Test TSP")
+        Points pts;
+        pts.emplace_back(Point2D(0,1));
+        pts.emplace_back(Point2D(4,1));
+        pts.emplace_back(Point2D(2,2));
+        pts.emplace_back(Point2D(3,0));
+        pts.emplace_back(Point2D(1,0));
+
+        TSP tsp(pts);
+        tsp.optTour();
+        tsp.printRes();
+    }
+};
 #endif
