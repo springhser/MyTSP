@@ -4,7 +4,7 @@
  * @Author: springhser
  * @Date: 2021-04-18 23:32:34
  * @LastEditors: springhser
- * @LastEditTime: 2021-06-13 19:59:19
+ * @LastEditTime: 2021-06-13 20:55:34
  */
 #include "DataReader.hpp"
 #include "TSP.hpp"
@@ -60,11 +60,8 @@ void testAll()
     TSPTest tsp_test;
     tsp_test.test();
 #endif
-    helptool::Timer<std::chrono::milliseconds> timer;
+    helptool::Timer<std::chrono::milliseconds> timer("LKH", "milliseconds");
     testDoOpt();
-
-
-    
 }
 
 int main()
