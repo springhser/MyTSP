@@ -4,7 +4,7 @@
  * @Author: springhser
  * @Date: 2020-12-21 22:35:55
  * @LastEditors: springhser
- * @LastEditTime: 2021-06-13 17:58:02
+ * @LastEditTime: 2021-06-13 20:03:58
  */
 #ifndef TSP_HPP
 #define TSP_HPP
@@ -24,7 +24,7 @@
 #include "Point.hpp"
 #include "Utils/HelpTool.hpp"
 
-#define RECURSION_DEPTH 5
+#define RECURSION_DEPTH 4
 
 class ATest
 {
@@ -855,6 +855,7 @@ public:
             // at the first the add set and remove set should be cleared.
             set_A_.clear();
             set_R_.clear();
+            recur_depth_ = 0;
             Edge e_r(n1_idx, n2_idx);
             if(set_R_.find(e_r) == set_R_.end())
             {
@@ -875,6 +876,10 @@ public:
     
     bool doSelection(int n2_idx, int origin_node_idx, Tour& temp_tour)
     {
+        if(set_R_.size() > RECURSION_DEPTH || set_A_.size() > RECURSION_DEPTH)
+        {
+            return false;
+        }
         // get the neighbor node of n2.
         std::unordered_set<int> n3_idxes;
         if(!tour_.getNeighborNode(n2_idx, set_R_, set_A_, n3_idxes))
@@ -921,6 +926,10 @@ public:
     
     bool doSelection2(int n3_idx, int origin_node_idx, Tour& temp_tour)
     {
+        if(set_R_.size() > RECURSION_DEPTH || set_A_.size() > RECURSION_DEPTH)
+        {
+            return false;
+        }
         std::vector<int> prv_succ = tour_.getAdjacentIdxByIdx(n3_idx);
 
         for(auto& n4_idx : prv_succ)
@@ -948,26 +957,30 @@ public:
             set_R_.insert(e_r);
             set_A_.insert(e_final);
 
-            PRINTN("*******************************")
-            PRINTN("print middle result:"<<recur_depth_)
-            printRSet();
-            printASet();
-            PRINTN("*******************************")
-            PRINTN("")
+            // PRINTN("*******************************")
+            // PRINTN("print middle result:"<<recur_depth_)
+            // printRSet();
+            // printASet();
+            // PRINTN("*******************************")
+            // PRINTN("")
             if(temp_tour.getEdgeSetLength(set_R_) > temp_tour.getEdgeSetLength(set_A_))
             {
                 if(temp_tour.relinkTour(set_R_, set_A_))
                 {
                     recur_depth_ = 0;
-                    PRINTN("Yes get it")
+                    // PRINTN("Yes get it")
                     return true;
                 }
             }
             set_A_.erase(e_final);
             
-            
-            
             recur_depth_++;
+            if(recur_depth_ > RECURSION_DEPTH)
+            {
+                recur_depth_ = 0;
+                return false;;
+            }
+
             if(doSelection(n4_idx, origin_node_idx, temp_tour))
             {
                 return true;
@@ -975,11 +988,7 @@ public:
 
             set_R_.erase(e_r);
 
-            if(recur_depth_ > RECURSION_DEPTH)
-            {
-                recur_depth_ = 0;
-                break;
-            }
+
         }
 
         return false;
@@ -1006,6 +1015,11 @@ public:
         tour_.printTour();
     }
 
+    void printCost()
+    {
+        tour_.calTourCost();
+        PRINTN("Cost: " << tour_.getTourCost());
+    }
     void printRSet()
     {
         PRINTN("R set{")

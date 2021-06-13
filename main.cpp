@@ -4,7 +4,7 @@
  * @Author: springhser
  * @Date: 2021-04-18 23:32:34
  * @LastEditors: springhser
- * @LastEditTime: 2021-06-13 17:03:42
+ * @LastEditTime: 2021-06-13 19:59:19
  */
 #include "DataReader.hpp"
 #include "TSP.hpp"
@@ -32,18 +32,21 @@
 //     tsp.printTour();
 // }
 
-// void testDoOpt()
-// {
-//     TESTMODULE("Execute TSP")
-//     std::ifstream infile("Data/test.tsp");
-//     Points point_list;
-//     DataReader::addContents(infile, point_list);
-//     TSP tsp(point_list);
-//     TESTCASE("Optimise the Tour")
-//     tsp.optTour();
-//     tsp.printRes();
+void testDoOpt()
+{
+    TESTMODULE("Execute TSP")
+    // std::ifstream infile("Data/test.tsp");
+    std::ifstream infile("Data/att48.tsp");
+    Points point_list;
+    DataReader::addContents(infile, point_list);
+    TSP tsp(point_list);
+    tsp.printCost();
+    TESTCASE("Optimise the Tour")
+    tsp.optTour();
+    tsp.printCost();
+    tsp.printRes();
     
-// }
+}
 void testAll()
 {
     // testDataReader();
@@ -54,12 +57,13 @@ void testAll()
     e_test.test();
     TourTest tour_test;
     tour_test.test();
-
-#endif
-
-
     TSPTest tsp_test;
     tsp_test.test();
+#endif
+    helptool::Timer<std::chrono::milliseconds> timer;
+    testDoOpt();
+
+
     
 }
 
