@@ -4,7 +4,7 @@
  * @Author: springhser
  * @Date: 2020-12-21 22:35:55
  * @LastEditors: springhser
- * @LastEditTime: 2021-06-07 23:43:33
+ * @LastEditTime: 2021-06-13 17:58:02
  */
 #ifndef TSP_HPP
 #define TSP_HPP
@@ -505,7 +505,7 @@ struct Tour
      *        3.
      * @return the neighbor node of the cur_node.
      */
-    bool getNeighborNode(int cur_idx, const EdgeSet& R_set, const EdgeSet& A_set, int& nnode_idx)
+    bool getNeighborNode(int cur_idx, const EdgeSet& R_set, const EdgeSet& A_set, std::unordered_set<int>& nnodes)
     {
         for(auto& n: Node_List)
         {
@@ -532,10 +532,9 @@ struct Tour
             //     continue;
             // }
 
-            nnode_idx = n.unq_idx_;
-            return true;
+            nnodes.insert(n.unq_idx_);
         }
-        return false;
+        return !nnodes.empty();
     }
 
 // havnt finished
@@ -743,11 +742,13 @@ class TourTest:public ATest
         PRINTN("")
         EdgeSet R_set{Edge(0,1)};
         EdgeSet A_set{Edge(1,3)};
-        int res = -1;
+        std::unordered_set<int> res;
         EQUAL(tour.getNeighborNode(1, R_set, A_set, res))
-        EQUAL(3 ==res);
-
-
+        for(auto i : res)
+        {
+            PRINT(i << " ");
+        }
+        PRINTN("");
     }
 
     void testValid()
@@ -864,28 +865,58 @@ public:
                 continue;
             }
             
-            if(!doSelection(n2_idx, n1_idx, temp_tour))
+            if(doSelection(n2_idx, n1_idx, temp_tour))
             {
-                continue;
+                return true;
             }
         }
-        return true;
+        return false;
     }
     
     bool doSelection(int n2_idx, int origin_node_idx, Tour& temp_tour)
     {
         // get the neighbor node of n2.
-        int n3_idx;
-        if(!tour_.getNeighborNode(n2_idx, set_R_, set_A_, n3_idx))
+        std::unordered_set<int> n3_idxes;
+        if(!tour_.getNeighborNode(n2_idx, set_R_, set_A_, n3_idxes))
         {
             return false;
+        } 
+
+        for(auto n3_idx: n3_idxes)
+        {
+            if(origin_node_idx == n3_idx)
+            {
+                continue;
+            }
+            Edge e(n2_idx, n3_idx);
+            
+            if(tour_.isEdgeInTour(e))
+            {
+                continue;
+            }
+            
+            if(isEdgeInRSet(set_R_, e))
+            {
+                continue;
+            }
+
+            if(isEdgeInASet(set_A_, e))
+            {
+                continue;
+            }
+            // add the new edge to set_A_
+            set_A_.insert(e);
+
+            if(doSelection2(n3_idx, origin_node_idx, temp_tour))
+            {
+                return true;
+            }
+
+            set_A_.erase(e);
         }
 
-        Edge e(n2_idx, n3_idx);
-        // add the new edge to set_A_
-        set_A_.insert(e);
+        return false;
 
-        return doSelection2(n3_idx, origin_node_idx, temp_tour);
     }
     
     bool doSelection2(int n3_idx, int origin_node_idx, Tour& temp_tour)
@@ -904,52 +935,64 @@ public:
                 continue;
             }
             
-            if(isEdgeInRSet(e_final))
+            if(isEdgeInRSet(set_R_, e_final))
             {
                 continue;
             }
 
-            if(isEdgeInASet(e_final))
+            if(isEdgeInASet(set_A_, e_final))
             {
                 continue;
             }
             Edge e_r(n3_idx,n4_idx);
             set_R_.insert(e_r);
             set_A_.insert(e_final);
-            if(temp_tour.getEdgeSetLength(set_R_) > temp_tour.getEdgeSetLength(set_R_))
+
+            PRINTN("*******************************")
+            PRINTN("print middle result:"<<recur_depth_)
+            printRSet();
+            printASet();
+            PRINTN("*******************************")
+            PRINTN("")
+            if(temp_tour.getEdgeSetLength(set_R_) > temp_tour.getEdgeSetLength(set_A_))
             {
                 if(temp_tour.relinkTour(set_R_, set_A_))
                 {
                     recur_depth_ = 0;
+                    PRINTN("Yes get it")
                     return true;
                 }
             }
             set_A_.erase(e_final);
             
-            if(recur_depth_ > RECURSION_DEPTH)
-            {
-                recur_depth_ = 0;
-                return false;
-            }
-
+            
+            
             recur_depth_++;
             if(doSelection(n4_idx, origin_node_idx, temp_tour))
             {
                 return true;
+            }
+
+            set_R_.erase(e_r);
+
+            if(recur_depth_ > RECURSION_DEPTH)
+            {
+                recur_depth_ = 0;
+                break;
             }
         }
 
         return false;
     }
 
-    bool isEdgeInRSet(const Edge& e)
+    bool isEdgeInRSet(const EdgeSet& set_R, Edge& e)
     {
-        return set_R_.find(e) != set_R_.end();
+        return set_R.find(e) != set_R.end();
     }
 
-    bool isEdgeInASet(const Edge& e)
+    bool isEdgeInASet(const EdgeSet& set_A, const Edge& e)
     {
-        return set_A_.find(e) != set_A_.end();
+        return set_A.find(e) != set_A.end();
     }
 
     void printTour()
@@ -963,7 +1006,24 @@ public:
         tour_.printTour();
     }
 
-
+    void printRSet()
+    {
+        PRINTN("R set{")
+        for(auto& e: set_R_)
+        {
+            PRINT(e);
+        }
+        PRINTN("}");
+    }
+    void printASet()
+    {
+        PRINTN("A set{")
+        for(auto& e: set_A_)
+        {
+            PRINT(e);
+        }
+        PRINTN("}");
+    }
 private:
     EdgeSet set_R_; // the set of edge that to be removed  
     EdgeSet set_A_; // the set of edge that to be added
